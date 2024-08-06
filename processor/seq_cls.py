@@ -80,7 +80,10 @@ def seq_cls_convert_examples_to_features(
     labels = [label_from_example(example) for example in examples]
 
     batch_encoding = tokenizer.batch_encode_plus(
-        [(example.text_a, example.text_b) for example in examples], max_length=max_length, pad_to_max_length=True
+        [(example.text_a, example.text_b) for example in examples],
+        max_length=max_length,
+        truncation=True,  # truncation 설정 추가
+        padding='max_length'  # padding 설정 추가
     )
 
     features = []
@@ -102,58 +105,6 @@ def seq_cls_convert_examples_to_features(
 
     return features
 
-
-class KorNLIProcessor(object):
-    """Processor for the KorNLI data set """
-
-    def __init__(self, args):
-        self.args = args
-
-    def get_labels(self):
-        return ["contradiction", "entailment", "neutral"]
-
-    @classmethod
-    def _read_file(cls, input_file):
-        """Reads a tab separated value file."""
-        with open(input_file, "r", encoding="utf-8") as f:
-            lines = []
-            for line in f:
-                lines.append(line.strip())
-            return lines
-
-    def _create_examples(self, lines, set_type):
-        """Creates examples for the training and dev sets."""
-        examples = []
-        for (i, line) in enumerate(lines[1:]):
-            line = line.split('\t')
-            guid = "%s-%s" % (set_type, i)
-            text_a = line[0]
-            text_b = line[1]
-            label = line[2]
-            if i % 100000 == 0:
-                logger.info(line)
-            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-        return examples
-
-    def get_examples(self, mode):
-        """
-        Args:
-            mode: train, dev, test
-        """
-        file_to_read = None
-        if mode == 'train':
-            file_to_read = self.args.train_file  # Only mnli for training
-        elif mode == 'dev':
-            file_to_read = self.args.dev_file
-        elif mode == 'test':
-            file_to_read = self.args.test_file
-
-        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, self.args.task, file_to_read)))
-        return self._create_examples(self._read_file(os.path.join(self.args.data_dir,
-                                                                  self.args.task,
-                                                                  file_to_read)), mode)
-
-
 class NsmcProcessor(object):
     """Processor for the NSMC data set """
 
@@ -166,7 +117,7 @@ class NsmcProcessor(object):
     @classmethod
     def _read_file(cls, input_file):
         """Reads a tab separated value file."""
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, "r", encoding="utf-8") as f:  # 인코딩 명시
             lines = []
             for line in f:
                 lines.append(line.strip())
@@ -204,185 +155,16 @@ class NsmcProcessor(object):
                                                                   file_to_read)), mode)
 
 
-class PawsProcessor(object):
-    """Processor for the PAWS data set """
-
-    def __init__(self, args):
-        self.args = args
-
-    def get_labels(self):
-        return ["0", "1"]
-
-    @classmethod
-    def _read_file(cls, input_file):
-        """Reads a tab separated value file."""
-        with open(input_file, "r", encoding="utf-8") as f:
-            lines = []
-            for line in f:
-                lines.append(line.strip())
-            return lines
-
-    def _create_examples(self, lines, set_type):
-        """Creates examples for the training and dev sets."""
-        examples = []
-        for (i, line) in enumerate(lines[1:]):
-            line = line.split('\t')
-            guid = "%s-%s" % (set_type, i)
-            text_a = line[1]
-            text_b = line[2]
-            label = line[3]
-            if text_a == "" or text_b == "":
-                continue
-            if i % 10000 == 0:
-                logger.info(line)
-            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-        return examples
-
-    def get_examples(self, mode):
-        """
-        Args:
-            mode: train, dev, test
-        """
-        file_to_read = None
-        if mode == 'train':
-            file_to_read = self.args.train_file
-        elif mode == 'dev':
-            file_to_read = self.args.dev_file
-        elif mode == 'test':
-            file_to_read = self.args.test_file
-
-        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, self.args.task, file_to_read)))
-        return self._create_examples(self._read_file(os.path.join(self.args.data_dir,
-                                                                  self.args.task,
-                                                                  file_to_read)), mode)
-
-
-class KorSTSProcessor(object):
-    """Processor for the KorSTS data set """
-
-    def __init__(self, args):
-        self.args = args
-
-    def get_labels(self):
-        return [None]
-
-    @classmethod
-    def _read_file(cls, input_file):
-        """Reads a tab separated value file."""
-        with open(input_file, "r", encoding="utf-8") as f:
-            lines = []
-            for line in f:
-                lines.append(line.strip())
-            return lines
-
-    def _create_examples(self, lines, set_type):
-        """Creates examples for the training and dev sets."""
-        examples = []
-        for (i, line) in enumerate(lines[1:]):
-            line = line.split('\t')
-            guid = "%s-%s" % (set_type, i)
-            text_a = line[5]
-            text_b = line[6]
-            label = line[4]
-            if i % 1000 == 0:
-                logger.info(line)
-            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-        return examples
-
-    def get_examples(self, mode):
-        """
-        Args:
-            mode: train, dev, test
-        """
-        file_to_read = None
-        if mode == 'train':
-            file_to_read = self.args.train_file  # Only mnli for training
-        elif mode == 'dev':
-            file_to_read = self.args.dev_file
-        elif mode == 'test':
-            file_to_read = self.args.test_file
-
-        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, self.args.task, file_to_read)))
-        return self._create_examples(self._read_file(os.path.join(self.args.data_dir,
-                                                                  self.args.task,
-                                                                  file_to_read)), mode)
-
-
-class QuestionPairProcessor(object):
-    """Processor for the Question-Pair data set """
-
-    def __init__(self, args):
-        self.args = args
-
-    def get_labels(self):
-        return ["0", "1"]
-
-    @classmethod
-    def _read_file(cls, input_file):
-        """Reads a tab separated value file."""
-        with open(input_file, "r", encoding="utf-8") as f:
-            lines = []
-            for line in f:
-                lines.append(line.strip())
-            return lines
-
-    def _create_examples(self, lines, set_type):
-        """Creates examples for the training and dev sets."""
-        examples = []
-        for (i, line) in enumerate(lines[1:]):
-            line = line.split('\t')
-            guid = "%s-%s" % (set_type, i)
-            text_a = line[0]
-            text_b = line[1]
-            label = line[2]
-            if text_a == "" or text_b == "":
-                continue
-            if i % 10000 == 0:
-                logger.info(line)
-            examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-        return examples
-
-    def get_examples(self, mode):
-        """
-        Args:
-            mode: train, dev, test
-        """
-        file_to_read = None
-        if mode == 'train':
-            file_to_read = self.args.train_file
-        elif mode == 'dev':
-            file_to_read = self.args.dev_file
-        elif mode == 'test':
-            file_to_read = self.args.test_file
-
-        logger.info("LOOKING AT {}".format(os.path.join(self.args.data_dir, self.args.task, file_to_read)))
-        return self._create_examples(self._read_file(os.path.join(self.args.data_dir,
-                                                                  self.args.task,
-                                                                  file_to_read)), mode)
-
-
 seq_cls_processors = {
-    "kornli": KorNLIProcessor,
     "nsmc": NsmcProcessor,
-    "paws": PawsProcessor,
-    "korsts": KorSTSProcessor,
-    "question-pair": QuestionPairProcessor
 }
 
 seq_cls_tasks_num_labels = {
-    "kornli": 3,
     "nsmc": 2,
-    "paws": 2,
-    "korsts": 1,
-    "question-pair": 2
 }
 
 seq_cls_output_modes = {
-    "kornli": "classification",
     "nsmc": "classification",
-    "paws": "classification",
-    "korsts": "regression",
-    "question-pair": "classification"
 }
 
 
